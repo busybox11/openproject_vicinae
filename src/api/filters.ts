@@ -1,5 +1,7 @@
 import type { FilterObject, StatusFilter } from "../types";
 
+export type ProjectActivityFilter = "active" | "archived" | "all";
+
 export function statusFilter(status: StatusFilter): FilterObject | null {
   switch (status) {
     case "open":
@@ -25,6 +27,23 @@ export function projectFilter(projectId: string): FilterObject {
 
 export function globalProjectFilter(): FilterObject {
   return { project: { operator: "!*", values: [] } };
+}
+
+export function projectActivityFilter(
+  activity: ProjectActivityFilter,
+): FilterObject | null {
+  switch (activity) {
+    case "active":
+      return { active: { operator: "=", values: ["t"] } };
+    case "archived":
+      return { active: { operator: "=", values: ["f"] } };
+    case "all":
+      return null;
+    default: {
+      const _exhaustive: never = activity;
+      return _exhaustive;
+    }
+  }
 }
 
 export function subjectOrIdFilter(query: string): FilterObject {

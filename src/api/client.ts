@@ -22,7 +22,6 @@ export type SortBy = Array<[string, "asc" | "desc"]>;
 
 export const WORK_PACKAGE_SORT: SortBy = [["updatedAt", "desc"]];
 export const PROJECT_SORT: SortBy = [["name", "asc"]];
-export const QUERY_SORT: SortBy = [["name", "asc"]];
 
 type RequestOptions = {
   path: string;
@@ -132,6 +131,10 @@ export class OpenProjectClient {
     });
   }
 
+  getProject(id: number): Promise<Project> {
+    return this.request({ path: `/api/v3/projects/${id}` });
+  }
+
   listProjects(options: {
     filters?: FilterObject[];
     pageSize?: number;
@@ -153,12 +156,11 @@ export class OpenProjectClient {
     filters?: FilterObject[];
     pageSize?: number;
     offset?: number;
-    sortBy?: SortBy;
   } = {}): Promise<Collection<Query>> {
+    // Query listing has no supported sortBy orders.
     return this.request({
       path: "/api/v3/queries",
       filters: options.filters,
-      sortBy: options.sortBy ?? QUERY_SORT,
       query: {
         pageSize: options.pageSize ?? this.prefs.pageSize,
         offset: options.offset ?? 1,

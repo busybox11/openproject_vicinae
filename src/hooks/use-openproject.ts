@@ -78,10 +78,17 @@ export function useQueries(filters: FilterObject[] = [], key = "all") {
   });
 
   const { items, total } = flattenPages(query.data?.pages);
+  const sorted = useMemo(
+    () =>
+      [...items].sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+      ),
+    [items],
+  );
 
   return {
     ...query,
-    items,
+    items: sorted,
     total,
     hasMore: query.hasNextPage ?? false,
     loadMore: async () => {
