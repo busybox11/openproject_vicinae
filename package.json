@@ -1,0 +1,163 @@
+{
+  "$schema": "https://raw.githubusercontent.com/vicinaehq/vicinae/refs/heads/main/extra/schemas/extension.json",
+  "name": "openproject",
+  "title": "OpenProject",
+  "description": "Browse work packages, projects, and saved queries on cloud or self-hosted OpenProject",
+  "version": "1.0.0",
+  "author": "busybox11",
+  "license": "MIT",
+  "icon": "extension_icon.png",
+  "categories": [
+    "Productivity",
+    "Developer Tools"
+  ],
+  "keywords": [
+    "openproject",
+    "work packages",
+    "tickets",
+    "project management"
+  ],
+  "commands": [
+    {
+      "name": "search-work-packages",
+      "title": "Search Work Packages",
+      "subtitle": "OpenProject",
+      "description": "Search work packages with baked preference filters",
+      "mode": "view",
+      "keywords": [
+        "openproject",
+        "search",
+        "work package",
+        "ticket",
+        "issue"
+      ]
+    },
+    {
+      "name": "my-work-packages",
+      "title": "My Work Packages",
+      "subtitle": "OpenProject",
+      "description": "Work packages assigned to you",
+      "mode": "view",
+      "keywords": [
+        "openproject",
+        "assigned",
+        "my",
+        "todo"
+      ]
+    },
+    {
+      "name": "open-work-package",
+      "title": "Open Work Package",
+      "subtitle": "OpenProject",
+      "description": "Open a work package by ID (argument or clipboard)",
+      "mode": "view",
+      "keywords": [
+        "openproject",
+        "work package",
+        "id",
+        "open"
+      ],
+      "arguments": [
+        {
+          "name": "id",
+          "placeholder": "Work package ID",
+          "type": "text",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "saved-queries",
+      "title": "Saved Queries",
+      "subtitle": "OpenProject",
+      "description": "Browse and open your OpenProject saved queries / views",
+      "mode": "view",
+      "keywords": [
+        "openproject",
+        "query",
+        "view",
+        "filter"
+      ]
+    },
+    {
+      "name": "browse-projects",
+      "title": "Browse Projects",
+      "subtitle": "OpenProject",
+      "description": "List and search OpenProject projects",
+      "mode": "view",
+      "keywords": [
+        "openproject",
+        "project"
+      ]
+    }
+  ],
+  "preferences": [
+    {
+      "name": "instanceUrl",
+      "title": "Instance URL",
+      "description": "Base URL of your OpenProject instance, e.g. https://openproject.example.com or https://community.openproject.org",
+      "type": "textfield",
+      "required": true,
+      "placeholder": "https://openproject.example.com"
+    },
+    {
+      "name": "apiToken",
+      "title": "API Token",
+      "description": "Personal API token from My Account → Access tokens. Sent as Bearer auth.",
+      "type": "password",
+      "required": true
+    },
+    {
+      "name": "defaultProjectId",
+      "title": "Default Project ID",
+      "description": "Optional numeric project ID used as a baked filter for Search and My Work Packages. Leave empty for all projects.",
+      "type": "textfield",
+      "required": false,
+      "placeholder": "e.g. 42"
+    },
+    {
+      "name": "defaultStatusFilter",
+      "title": "Default Status Filter",
+      "description": "Baked status filter for Search and My Work Packages",
+      "type": "dropdown",
+      "required": false,
+      "default": "open",
+      "data": [
+        {
+          "title": "Open",
+          "value": "open"
+        },
+        {
+          "title": "Closed",
+          "value": "closed"
+        },
+        {
+          "title": "All",
+          "value": "all"
+        }
+      ]
+    },
+    {
+      "name": "pageSize",
+      "title": "Page Size",
+      "description": "Number of results to fetch per request (1–100)",
+      "type": "textfield",
+      "required": false,
+      "default": "50"
+    }
+  ],
+  "scripts": {
+    "build": "vici build",
+    "dev": "vici develop",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.108.4",
+    "@vicinae/api": "^0.30.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.1.0",
+    "@types/react": "^19.1.17",
+    "typescript": "^5.9.2"
+  }
+}
