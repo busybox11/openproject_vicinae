@@ -67,6 +67,20 @@
       ]
     },
     {
+      "name": "pinned-queries",
+      "title": "Pinned Queries",
+      "subtitle": "OpenProject",
+      "description": "Open your locally pinned OpenProject queries",
+      "mode": "view",
+      "keywords": [
+        "openproject",
+        "pinned",
+        "favorite",
+        "query",
+        "view"
+      ]
+    },
+    {
       "name": "saved-queries",
       "title": "Saved Queries",
       "subtitle": "OpenProject",

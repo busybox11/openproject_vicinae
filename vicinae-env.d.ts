@@ -40,6 +40,11 @@ declare namespace Preferences {
 		
 	}
 
+	/** Command: Pinned Queries */
+	export type PinnedQueries = Omit<ExtensionPreferences, never> & {
+		
+	}
+
 	/** Command: Saved Queries */
 	export type SavedQueries = Omit<ExtensionPreferences, never> & {
 		
@@ -70,6 +75,11 @@ declare namespace Arguments {
 	export type OpenWorkPackage = {
 		/** Work package ID */
 		"id"?: string
+	}
+
+	/** Command: Pinned Queries */
+	export type PinnedQueries = {
+		
 	}
 
 	/** Command: Saved Queries */

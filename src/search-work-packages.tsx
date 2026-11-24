@@ -10,13 +10,17 @@ import { ErrorEmptyView } from "./components/ErrorEmptyView";
 import { WorkPackageSections } from "./components/WorkPackageSections";
 import { useClient, useWorkPackages } from "./hooks/use-openproject";
 import { useDebouncedValue } from "./hooks/useDebouncedValue";
+import { usePersistedValue } from "./hooks/use-persisted-value";
 import type { StatusFilter } from "./types";
 import { withQuery } from "./with-query";
 
 function SearchWorkPackages() {
   const { client, prefs } = useClient();
   const [searchText, setSearchText] = useState("");
-  const [status, setStatus] = useState<StatusFilter>(prefs.defaultStatusFilter);
+  const [status, setStatus] = usePersistedValue<StatusFilter>(
+    `search-wp-status:${client.instanceUrl}`,
+    prefs.defaultStatusFilter,
+  );
   const debounced = useDebouncedValue(searchText, 300);
 
   const filters = useMemo(
@@ -57,6 +61,7 @@ function SearchWorkPackages() {
           tooltip="Status"
           value={status}
           onChange={(value) => setStatus(value as StatusFilter)}
+          storeValue={false}
         >
           <List.Dropdown.Item title="Open" value="open" />
           <List.Dropdown.Item title="Closed" value="closed" />

@@ -1,92 +1,43 @@
-import { Action, ActionPanel, Icon, List, useNavigation } from "@vicinae/api";
+import { List } from "@vicinae/api";
 import { useMemo, useState } from "react";
 import {
   globalProjectFilter,
   mergeFilters,
   projectFilter,
 } from "./api/filters";
-import { queryUrl } from "./api/urls";
 import { ErrorEmptyView } from "./components/ErrorEmptyView";
-import { WorkPackageSections } from "./components/WorkPackageSections";
+import { SavedQueryListItem } from "./components/SavedQueryListItem";
+import { usePersistedValue } from "./hooks/use-persisted-value";
 import { usePinnedQueries } from "./hooks/use-pinned-queries";
-import {
-  useClient,
-  useQueries,
-  useQueryResults,
-} from "./hooks/use-openproject";
+import { useProjectOptions } from "./hooks/use-project-options";
+import { useClient, useQueries } from "./hooks/use-openproject";
 import { useDebouncedValue } from "./hooks/useDebouncedValue";
 import type { FilterObject, Query } from "./types";
 import { withQuery } from "./with-query";
 
-type Scope = "all" | "global" | "default";
-
-function QueryResults({ query }: { query: Query }) {
-  const { client } = useClient();
-  const {
-    items,
-    total,
-    isLoading,
-    isFetchingNextPage,
-    error,
-    refetch,
-    hasMore,
-    loadMore,
-  } = useQueryResults(query.id);
-
-  return (
-    <List
-      isLoading={isLoading || isFetchingNextPage}
-      navigationTitle={query.name}
-      searchBarPlaceholder="Filter results locally…"
-      pagination={{ hasMore, onLoadMore: loadMore }}
-    >
-      {error ? (
-        <ErrorEmptyView
-          title="Failed to run query"
-          description={error.message}
-          onRetry={() => refetch()}
-        />
-      ) : items.length === 0 && !isLoading ? (
-        <ErrorEmptyView title="Query returned no work packages" />
-      ) : (
-        <WorkPackageSections
-          items={items}
-          instanceUrl={client.instanceUrl}
-          total={total}
-        />
-      )}
-    </List>
-  );
-}
-
-const QueryResultsView = withQuery(QueryResults);
-
 function SavedQueries() {
   const { client, prefs } = useClient();
-  const { push } = useNavigation();
   const [searchText, setSearchText] = useState("");
-  const [scope, setScope] = useState<Scope>("all");
+  const [scope, setScope] = usePersistedValue<string>(
+    `saved-queries-scope:${client.instanceUrl}`,
+    prefs.defaultProjectId ? `project:${prefs.defaultProjectId}` : "all",
+  );
   const debounced = useDebouncedValue(searchText, 200);
   const { pinnedIds, isPinned, togglePinned } = usePinnedQueries(
     client.instanceUrl,
   );
+  const { data: projects = [], isLoading: projectsLoading } =
+    useProjectOptions();
 
   const filters = useMemo((): FilterObject[] => {
-    switch (scope) {
-      case "global":
-        return mergeFilters(globalProjectFilter());
-      case "default":
-        return prefs.defaultProjectId
-          ? mergeFilters(projectFilter(prefs.defaultProjectId))
-          : [];
-      case "all":
-        return [];
-      default: {
-        const _exhaustive: never = scope;
-        return _exhaustive;
-      }
+    if (scope === "all") return [];
+    if (scope === "global") return mergeFilters(globalProjectFilter());
+    if (scope.startsWith("project:")) {
+      const id = scope.slice("project:".length);
+      return id ? mergeFilters(projectFilter(id)) : [];
     }
-  }, [scope, prefs.defaultProjectId]);
+    return [];
+  }, [scope]);
 
   const {
     items: allItems,
@@ -125,64 +76,26 @@ function SavedQueries() {
     [items, isPinned],
   );
 
-  const renderQuery = (query: Query) => {
-    const url = queryUrl(client.instanceUrl, query.id);
-    const project = query._links.project?.title;
-    const pinnedQuery = isPinned(query.id);
-    return (
-      <List.Item
-        key={query.id}
-        id={String(query.id)}
-        title={query.name}
-        subtitle={project ?? "Global"}
-        icon={pinnedQuery ? Icon.Star : Icon.AppWindowList}
-        keywords={[String(query.id), project ?? "global"]}
-        accessories={[
-          ...(pinnedQuery ? [{ tag: { value: "Pinned" } }] : []),
-          ...(query.public ? [{ tag: { value: "Public" } }] : []),
-          { text: `#${query.id}` },
-        ]}
-        actions={
-          <ActionPanel>
-            <Action
-              title="Open Query Results"
-              icon={Icon.Eye}
-              onAction={() => push(<QueryResultsView query={query} />)}
-            />
-            <Action
-              title={pinnedQuery ? "Unpin Query" : "Pin Query"}
-              icon={pinnedQuery ? Icon.StarDisabled : Icon.Star}
-              shortcut={{ modifiers: ["ctrl", "shift"], key: "p" }}
-              onAction={() => togglePinned(query.id)}
-            />
-            <Action.OpenInBrowser title="Open in Browser" url={url} />
-            <Action.CopyToClipboard title="Copy URL" content={url} />
-          </ActionPanel>
-        }
-      />
-    );
-  };
-
   return (
     <List
-      isLoading={isLoading || isFetchingNextPage}
+      isLoading={isLoading || isFetchingNextPage || projectsLoading}
       searchText={searchText}
       onSearchTextChange={setSearchText}
       searchBarPlaceholder="Filter by name, project or id…"
       searchBarAccessory={
-        <List.Dropdown
-          tooltip="Scope"
-          value={scope}
-          onChange={(value) => setScope(value as Scope)}
-        >
+        <List.Dropdown tooltip="Scope" value={scope} onChange={setScope}>
           <List.Dropdown.Item title="All queries" value="all" />
           <List.Dropdown.Item title="Global only" value="global" />
-          {prefs.defaultProjectId ? (
-            <List.Dropdown.Item
-              title={`Project ${prefs.defaultProjectId}`}
-              value="default"
-            />
-          ) : null}
+          <List.Dropdown.Section title="Projects">
+            {projects.map((project) => (
+              <List.Dropdown.Item
+                key={project.id}
+                title={project.name}
+                value={`project:${project.id}`}
+                keywords={[project.identifier, String(project.id)]}
+              />
+            ))}
+          </List.Dropdown.Section>
         </List.Dropdown>
       }
       pagination={{ hasMore, onLoadMore: loadMore }}
@@ -204,10 +117,28 @@ function SavedQueries() {
             <List.Section title={`Showing ${allItems.length} of ${total}`} />
           ) : null}
           {pinned.length > 0 ? (
-            <List.Section title="Pinned">{pinned.map(renderQuery)}</List.Section>
+            <List.Section title="Pinned">
+              {pinned.map((query) => (
+                <SavedQueryListItem
+                  key={query.id}
+                  query={query}
+                  instanceUrl={client.instanceUrl}
+                  pinned
+                  onTogglePinned={togglePinned}
+                />
+              ))}
+            </List.Section>
           ) : null}
           <List.Section title={pinned.length > 0 ? "All queries" : "Queries"}>
-            {unpinned.map(renderQuery)}
+            {unpinned.map((query) => (
+              <SavedQueryListItem
+                key={query.id}
+                query={query}
+                instanceUrl={client.instanceUrl}
+                pinned={false}
+                onTogglePinned={togglePinned}
+              />
+            ))}
           </List.Section>
         </>
       )}
