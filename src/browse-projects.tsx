@@ -20,20 +20,25 @@ function BrowseProjects() {
     [debounced],
   );
 
-  const { data, isLoading, isFetching, error, refetch } = useProjects(
-    filters,
-    debounced,
-  );
-
-  const items = data?._embedded.elements ?? [];
+  const {
+    items,
+    total,
+    isLoading,
+    isFetchingNextPage,
+    error,
+    refetch,
+    hasMore,
+    loadMore,
+  } = useProjects(filters, debounced);
 
   return (
     <List
-      isLoading={isLoading || isFetching}
+      isLoading={isLoading || isFetchingNextPage}
       searchText={searchText}
       onSearchTextChange={setSearchText}
       throttle
       searchBarPlaceholder="Search projects…"
+      pagination={{ hasMore, onLoadMore: loadMore }}
     >
       {error ? (
         <ErrorEmptyView
@@ -44,50 +49,58 @@ function BrowseProjects() {
       ) : items.length === 0 && !isLoading ? (
         <ErrorEmptyView title="No projects found" />
       ) : (
-        items.map((project) => {
-          const url = projectUrl(client.instanceUrl, project);
-          const archived = project.active === false;
-          return (
-            <List.Item
-              key={project.id}
-              id={String(project.id)}
-              title={project.name}
-              subtitle={project.identifier}
-              icon={Icon.Folder}
-              keywords={[project.identifier, String(project.id)]}
-              accessories={[
-                {
-                  text: {
-                    value: archived ? "Archived" : "Active",
-                    color: archived ? Color.SecondaryText : Color.Green,
+        <List.Section
+          title={
+            total > items.length
+              ? `Showing ${items.length} of ${total}`
+              : undefined
+          }
+        >
+          {items.map((project) => {
+            const url = projectUrl(client.instanceUrl, project);
+            const archived = project.active === false;
+            return (
+              <List.Item
+                key={project.id}
+                id={String(project.id)}
+                title={project.name}
+                subtitle={project.identifier}
+                icon={Icon.Folder}
+                keywords={[project.identifier, String(project.id)]}
+                accessories={[
+                  {
+                    text: {
+                      value: archived ? "Archived" : "Active",
+                      color: archived ? Color.SecondaryText : Color.Green,
+                    },
                   },
-                },
-                {
-                  text: {
-                    value: String(project.id),
-                    color: Color.SecondaryText,
+                  {
+                    text: {
+                      value: String(project.id),
+                      color: Color.SecondaryText,
+                    },
+                    tooltip: "Project ID",
                   },
-                  tooltip: "Project ID",
-                },
-              ]}
-              actions={
-                <ActionPanel>
-                  <Action.OpenInBrowser title="Open in Browser" url={url} />
-                  <Action.CopyToClipboard title="Copy URL" content={url} />
-                  <Action.CopyToClipboard
-                    title="Copy Project ID"
-                    content={String(project.id)}
-                    shortcut={{ modifiers: ["ctrl"], key: "c" }}
-                  />
-                  <Action.CopyToClipboard
-                    title="Copy Identifier"
-                    content={project.identifier}
-                  />
-                </ActionPanel>
-              }
-            />
-          );
-        })
+                ]}
+                actions={
+                  <ActionPanel>
+                    <Action.OpenInBrowser title="Open in Browser" url={url} />
+                    <Action.CopyToClipboard title="Copy URL" content={url} />
+                    <Action.CopyToClipboard
+                      title="Copy Project ID"
+                      content={String(project.id)}
+                      shortcut={{ modifiers: ["ctrl"], key: "c" }}
+                    />
+                    <Action.CopyToClipboard
+                      title="Copy Identifier"
+                      content={project.identifier}
+                    />
+                  </ActionPanel>
+                }
+              />
+            );
+          })}
+        </List.Section>
       )}
     </List>
   );

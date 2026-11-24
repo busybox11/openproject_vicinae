@@ -33,16 +33,23 @@ function MyWorkPackages() {
     [status, prefs.defaultProjectId, debounced],
   );
 
-  const { data, isLoading, isFetching, error, refetch } = useWorkPackages(
+  const {
+    items,
+    total,
+    isLoading,
+    isFetchingNextPage,
+    error,
+    refetch,
+    hasMore,
+    loadMore,
+  } = useWorkPackages(
     filters,
     `mine:${status}:${prefs.defaultProjectId ?? ""}:${debounced}`,
   );
 
-  const items = data?._embedded.elements ?? [];
-
   return (
     <List
-      isLoading={isLoading || isFetching}
+      isLoading={isLoading || isFetchingNextPage}
       searchText={searchText}
       onSearchTextChange={setSearchText}
       throttle
@@ -58,6 +65,7 @@ function MyWorkPackages() {
           <List.Dropdown.Item title="All" value="all" />
         </List.Dropdown>
       }
+      pagination={{ hasMore, onLoadMore: loadMore }}
     >
       {error ? (
         <ErrorEmptyView
@@ -75,6 +83,7 @@ function MyWorkPackages() {
           items={items}
           instanceUrl={client.instanceUrl}
           hideAssignee
+          total={total}
         />
       )}
     </List>

@@ -7,17 +7,26 @@ type Props = {
   items: WorkPackage[];
   instanceUrl: string;
   hideAssignee?: boolean;
+  total?: number;
 };
 
 export function WorkPackageSections({
   items,
   instanceUrl,
   hideAssignee,
+  total,
 }: Props) {
   const sections = groupByStatus(items);
+  const loadedLabel =
+    total !== undefined && total > items.length
+      ? `Showing ${items.length} of ${total}`
+      : undefined;
 
   return (
     <>
+      {loadedLabel ? (
+        <List.Section title={loadedLabel} />
+      ) : null}
       {sections.map((section) => (
         <List.Section
           key={section.title}

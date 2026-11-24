@@ -22,17 +22,23 @@ type Scope = "all" | "global" | "default";
 
 function QueryResults({ query }: { query: Query }) {
   const { client } = useClient();
-  const { data, isLoading, isFetching, error, refetch } = useQueryResults(
-    query.id,
-  );
-
-  const items = data?._embedded?.results?._embedded.elements ?? [];
+  const {
+    items,
+    total,
+    isLoading,
+    isFetchingNextPage,
+    error,
+    refetch,
+    hasMore,
+    loadMore,
+  } = useQueryResults(query.id);
 
   return (
     <List
-      isLoading={isLoading || isFetching}
+      isLoading={isLoading || isFetchingNextPage}
       navigationTitle={query.name}
       searchBarPlaceholder="Filter results locally…"
+      pagination={{ hasMore, onLoadMore: loadMore }}
     >
       {error ? (
         <ErrorEmptyView
@@ -43,7 +49,11 @@ function QueryResults({ query }: { query: Query }) {
       ) : items.length === 0 && !isLoading ? (
         <ErrorEmptyView title="Query returned no work packages" />
       ) : (
-        <WorkPackageSections items={items} instanceUrl={client.instanceUrl} />
+        <WorkPackageSections
+          items={items}
+          instanceUrl={client.instanceUrl}
+          total={total}
+        />
       )}
     </List>
   );
@@ -78,16 +88,21 @@ function SavedQueries() {
     }
   }, [scope, prefs.defaultProjectId]);
 
-  const { data, isLoading, isFetching, error, refetch } = useQueries(
-    filters,
-    scope,
-  );
+  const {
+    items: allItems,
+    total,
+    isLoading,
+    isFetchingNextPage,
+    error,
+    refetch,
+    hasMore,
+    loadMore,
+  } = useQueries(filters, scope);
 
   const items = useMemo(() => {
-    const all = data?._embedded.elements ?? [];
-    if (!debounced.trim()) return all;
+    if (!debounced.trim()) return allItems;
     const q = debounced.trim().toLowerCase();
-    return all.filter((item) => {
+    return allItems.filter((item) => {
       const project = item._links.project?.title?.toLowerCase() ?? "";
       return (
         item.name.toLowerCase().includes(q) ||
@@ -96,7 +111,7 @@ function SavedQueries() {
         (project.length === 0 && "global".includes(q))
       );
     });
-  }, [data, debounced]);
+  }, [allItems, debounced]);
 
   const pinned = useMemo(() => {
     const byId = new Map(items.map((q) => [q.id, q]));
@@ -150,7 +165,7 @@ function SavedQueries() {
 
   return (
     <List
-      isLoading={isLoading || isFetching}
+      isLoading={isLoading || isFetchingNextPage}
       searchText={searchText}
       onSearchTextChange={setSearchText}
       searchBarPlaceholder="Filter by name, project or id…"
@@ -170,6 +185,7 @@ function SavedQueries() {
           ) : null}
         </List.Dropdown>
       }
+      pagination={{ hasMore, onLoadMore: loadMore }}
     >
       {error ? (
         <ErrorEmptyView
@@ -184,6 +200,9 @@ function SavedQueries() {
         />
       ) : (
         <>
+          {total > allItems.length ? (
+            <List.Section title={`Showing ${allItems.length} of ${total}`} />
+          ) : null}
           {pinned.length > 0 ? (
             <List.Section title="Pinned">{pinned.map(renderQuery)}</List.Section>
           ) : null}

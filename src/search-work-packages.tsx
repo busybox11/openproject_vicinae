@@ -31,16 +31,23 @@ function SearchWorkPackages() {
     [status, prefs.defaultProjectId, debounced],
   );
 
-  const { data, isLoading, isFetching, error, refetch } = useWorkPackages(
+  const {
+    items,
+    total,
+    isLoading,
+    isFetchingNextPage,
+    error,
+    refetch,
+    hasMore,
+    loadMore,
+  } = useWorkPackages(
     filters,
     `search:${status}:${prefs.defaultProjectId ?? ""}:${debounced}`,
   );
 
-  const items = data?._embedded.elements ?? [];
-
   return (
     <List
-      isLoading={isLoading || isFetching}
+      isLoading={isLoading || isFetchingNextPage}
       searchText={searchText}
       onSearchTextChange={setSearchText}
       throttle
@@ -56,6 +63,7 @@ function SearchWorkPackages() {
           <List.Dropdown.Item title="All" value="all" />
         </List.Dropdown>
       }
+      pagination={{ hasMore, onLoadMore: loadMore }}
     >
       {error ? (
         <ErrorEmptyView
@@ -76,6 +84,7 @@ function SearchWorkPackages() {
         <WorkPackageSections
           items={items}
           instanceUrl={client.instanceUrl}
+          total={total}
         />
       )}
     </List>

@@ -18,14 +18,31 @@ export class OpenProjectError extends Error {
   }
 }
 
+export type SortBy = Array<[string, "asc" | "desc"]>;
+
+export const WORK_PACKAGE_SORT: SortBy = [["updatedAt", "desc"]];
+export const PROJECT_SORT: SortBy = [["name", "asc"]];
+export const QUERY_SORT: SortBy = [["name", "asc"]];
+
 type RequestOptions = {
   path: string;
   query?: Record<string, string | number | undefined>;
   filters?: FilterObject[];
+  sortBy?: SortBy;
 };
 
 function encodeFilters(filters: FilterObject[]): string {
   return JSON.stringify(filters);
+}
+
+export function nextCollectionPage(collection: {
+  offset: number;
+  pageSize: number;
+  count: number;
+  total: number;
+}): number | undefined {
+  const loaded = (collection.offset - 1) * collection.pageSize + collection.count;
+  return loaded < collection.total ? collection.offset + 1 : undefined;
 }
 
 export class OpenProjectClient {
@@ -43,7 +60,12 @@ export class OpenProjectClient {
     return this.prefs.pageSize;
   }
 
-  private async request<T>({ path, query, filters }: RequestOptions): Promise<T> {
+  private async request<T>({
+    path,
+    query,
+    filters,
+    sortBy,
+  }: RequestOptions): Promise<T> {
     const url = new URL(`${this.prefs.instanceUrl}${path}`);
     if (query) {
       for (const [key, value] of Object.entries(query)) {
@@ -53,6 +75,9 @@ export class OpenProjectClient {
     }
     if (filters && filters.length > 0) {
       url.searchParams.set("filters", encodeFilters(filters));
+    }
+    if (sortBy && sortBy.length > 0) {
+      url.searchParams.set("sortBy", JSON.stringify(sortBy));
     }
 
     let response: Response;
@@ -94,10 +119,12 @@ export class OpenProjectClient {
     filters?: FilterObject[];
     pageSize?: number;
     offset?: number;
+    sortBy?: SortBy;
   } = {}): Promise<Collection<WorkPackage>> {
     return this.request({
       path: "/api/v3/work_packages",
       filters: options.filters,
+      sortBy: options.sortBy ?? WORK_PACKAGE_SORT,
       query: {
         pageSize: options.pageSize ?? this.prefs.pageSize,
         offset: options.offset ?? 1,
@@ -109,10 +136,12 @@ export class OpenProjectClient {
     filters?: FilterObject[];
     pageSize?: number;
     offset?: number;
+    sortBy?: SortBy;
   } = {}): Promise<Collection<Project>> {
     return this.request({
       path: "/api/v3/projects",
       filters: options.filters,
+      sortBy: options.sortBy ?? PROJECT_SORT,
       query: {
         pageSize: options.pageSize ?? this.prefs.pageSize,
         offset: options.offset ?? 1,
@@ -124,10 +153,12 @@ export class OpenProjectClient {
     filters?: FilterObject[];
     pageSize?: number;
     offset?: number;
+    sortBy?: SortBy;
   } = {}): Promise<Collection<Query>> {
     return this.request({
       path: "/api/v3/queries",
       filters: options.filters,
+      sortBy: options.sortBy ?? QUERY_SORT,
       query: {
         pageSize: options.pageSize ?? this.prefs.pageSize,
         offset: options.offset ?? 1,
@@ -137,10 +168,11 @@ export class OpenProjectClient {
 
   getQuery(
     id: number,
-    options: { pageSize?: number; offset?: number } = {},
+    options: { pageSize?: number; offset?: number; sortBy?: SortBy } = {},
   ): Promise<QueryWithResults> {
     return this.request({
       path: `/api/v3/queries/${id}`,
+      sortBy: options.sortBy ?? WORK_PACKAGE_SORT,
       query: {
         pageSize: options.pageSize ?? this.prefs.pageSize,
         offset: options.offset ?? 1,
