@@ -64,30 +64,48 @@ export function relativeUpdated(updatedAt?: string): string | undefined {
   return `${Math.floor(months / 12)}y`;
 }
 
+const STATUS_RANK: Array<{ match: RegExp; rank: number }> = [
+  { match: /^(new|to\s*do|open|created|backlog)$/i, rank: 10 },
+  { match: /spec|clarif|ready/i, rank: 20 },
+  { match: /progress|develop|doing|wip/i, rank: 30 },
+  { match: /review|feedback/i, rank: 40 },
+  { match: /^test(ing)?$/i, rank: 50 },
+  { match: /tested|qa\s*pass|verified/i, rank: 60 },
+  { match: /deploy|release|staging/i, rank: 70 },
+  { match: /blocked|on\s*hold|paused|waiting/i, rank: 80 },
+  { match: /closed|done|resolved|rejected|cancelled|canceled/i, rank: 90 },
+];
+
+function statusRank(title: string): number {
+  for (const entry of STATUS_RANK) {
+    if (entry.match.test(title)) return entry.rank;
+  }
+  return 55;
+}
+
 export function groupByStatus(items: WorkPackage[]): Array<{
   title: string;
   subtitle: string;
   items: WorkPackage[];
 }> {
-  const order: string[] = [];
   const map = new Map<string, WorkPackage[]>();
 
   for (const wp of items) {
     const key = wp._links.status?.title ?? "Unknown";
-    if (!map.has(key)) {
-      map.set(key, []);
-      order.push(key);
-    }
-    map.get(key)!.push(wp);
+    const group = map.get(key);
+    if (group) group.push(wp);
+    else map.set(key, [wp]);
   }
 
-  return order.map((title) => {
-    const group = map.get(title)!;
-    return {
+  return [...map.entries()]
+    .sort(([a], [b]) => {
+      const rankDiff = statusRank(a) - statusRank(b);
+      return rankDiff !== 0 ? rankDiff : a.localeCompare(b);
+    })
+    .map(([title, group]) => ({
       title,
       subtitle:
         group.length === 1 ? "1 work package" : `${group.length} work packages`,
       items: group,
-    };
-  });
+    }));
 }
